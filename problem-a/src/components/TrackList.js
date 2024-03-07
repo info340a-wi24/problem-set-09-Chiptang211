@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -14,18 +14,38 @@ export default function TrackList({setAlertMessage}) { //setAlertMessage callbac
   const urlParams = useParams(); //get album from URL
 
   //YOUR CODE GOES HERE
+  const { collectionId } = useParams();
 
+  useEffect(() => {
+    setIsQuerying(true);
+    const requestUrl = TRACK_QUERY_TEMPLATE.replace("{collectionId}", collectionId);
 
-  //for fun: allow for clicking to play preview audio!
+    fetch(requestUrl)
+      .then(response => response.json())
+      .then(data => {
+        if (data.resultCount <= 1) {
+          throw new Error("No tracks found for album.");
+        } else {
+          setTrackData(data.results.slice(1));
+        }
+      })
+      .catch(error => {
+        setAlertMessage(error.message);
+      })
+      .finally(() => {
+        setIsQuerying(false);
+      });
+  }, [collectionId, setAlertMessage]);
+
   const togglePlayingPreview = (previewUrl) => {
-    if(!previewAudio) { //nothing playing now
+    if(!previewAudio) {
       const newPreview = new Audio(previewUrl);
       newPreview.addEventListener('ended', () => setPreviewAudio(null)) //stop on end
-      setPreviewAudio(newPreview); //rerender and save
-      newPreview.play(); //also start playing
+      setPreviewAudio(newPreview);
+      newPreview.play();
     } else {
-      previewAudio.pause(); //stop whatever is currently playing
-      setPreviewAudio(null); //remove it
+      previewAudio.pause();
+      setPreviewAudio(null);
     }
   }
 
